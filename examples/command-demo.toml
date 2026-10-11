@@ -1,0 +1,31 @@
+# Copy this file and command_agent.py into a clean scratch Git repository before running it.
+# This deterministic command agent uses Python only; no model or API key is needed.
+name = "command-demo"
+root = "."
+
+[defaults]
+agent = "scripted"
+
+[agents.scripted]
+kind = "command"
+argv = ["python3", "command_agent.py"]
+
+[[task]]
+id = "write"
+type = "implement"
+title = "Write the demonstration result"
+prompt = "Write result.txt for the demonstration."
+outputs = ["result.txt"]
+gate = ["grep -qx 'Verified candidate' result.txt"]
+
+[[task]]
+id = "check"
+type = "check"
+verifies = "write"
+read_only = true
+run = ["test -s result.txt"]
+
+[[task]]
+id = "signoff"
+type = "human"
+verifies = "write"

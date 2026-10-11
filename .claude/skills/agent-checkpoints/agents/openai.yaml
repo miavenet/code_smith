@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agent Checkpoints"
+  short_description: "Track milestones and recover durable agent work"
+  default_prompt: "Use $agent-checkpoints to record task progress and recover work from durable milestone checkpoints."

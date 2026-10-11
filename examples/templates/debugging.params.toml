@@ -1,0 +1,23 @@
+# Parameters for the debugging template: a Python defect, reported in briefs/div-zero-17.md.
+# Paths in tasks are relative to the repository; `report` is relative to the generated workflow,
+# so this file expects the workflow to be written beside a briefs/ directory holding the report
+# (copy examples/templates/briefs/ there):
+#
+#   runner new debugging -o debug-17.toml --params examples/templates/debugging.params.toml
+#   runner validate debug-17.toml
+#   runner check-gates debug-17.toml     # the fix's gate "fails as intended (waits for reproduce)"
+#
+# Assumes the repository ignores __pycache__/ and .pytest_cache/, as Python projects do: a gate that
+# leaves an untracked file behind has changed the candidate, and fails.
+
+bug = "div-zero-17"
+report = "briefs/div-zero-17.md"
+symptom = "ZeroDivisionError"
+area = "src/calc/**"
+regression_test = "tests/regression/test_div_zero_17.py"
+test_one = "python3 -m unittest tests/regression/test_div_zero_17.py"
+suite = "python3 -m unittest discover -s tests -t ."
+
+invariants = ["python3 -m compileall -q src"]
+# The panels of the reviewer plan are fixed in the template; a Python project adds no bench.
+# A C++ project would pass e.g. fix_reviewers = ["concerned-carlos"].

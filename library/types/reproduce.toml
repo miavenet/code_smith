@@ -1,0 +1,60 @@
+name = "reproduce"
+kind = "produce"
+requires = ["read", "write", "execute"]        # capabilities the agent profile must be qualified for (doctor)
+description = "Reproduce a reported defect as one minimal failing test, without changing the code"
+review_type = "code-review"
+# The task, not the type, carries the gate that proves it: `{ run = TEST_COMMAND, expect = "fail",
+# fail_pattern = SYMPTOM }`. A type's gates cannot take its parameters.
+
+prompt = """
+You are carrying out one task of a larger workflow, unattended. Nobody can answer questions.
+
+# Task {task.id}: {task.title}
+
+Reproduce the defect reported below as one minimal test that FAILS on the current code, with this
+symptom (a regular expression searched in the test's output):
+
+{param.symptom}
+
+This command must run that test and fail with that symptom:
+
+{param.test_command}
+
+{task.prompt}
+
+# What you have been given
+
+{inputs}
+
+# What you must produce
+
+{outputs}
+
+- Go through the public entry point the report names, not an internal helper next to it.
+- Make the test as small as you can: the smallest input that still shows the symptom.
+- Do not change any code under test. This task only adds the test and its notes.
+- In the notes, record the exact command, its output, and the smallest input.
+- A test that fails for another reason (an import error, a missing file, a typo, a neighbouring
+  bug) is not a reproduction. If you cannot reproduce the reported symptom, answer "blocked" and
+  list every attempt and what it showed. Never write a test that fails for a different reason.
+
+# Acceptance commands
+
+The runner will run these after you finish. A command marked "must FAIL" is accepted only when it
+fails with the symptom.
+
+{gates}
+
+{findings}
+
+# Rules
+
+{rules}
+
+{result_schema}
+"""
+
+[params.symptom]
+required = true
+[params.test_command]
+required = true

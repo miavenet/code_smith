@@ -1,0 +1,22 @@
+# Copy this file, panel_agent.py and command_agent.py into a clean scratch Git repository.
+# Add "--dispute" to argv before starting to exercise resolve instead of automatic rework.
+name = "panel-demo"
+root = "."
+
+[defaults]
+agent = "scripted"
+max_parallel = 2
+
+[agents.scripted]
+kind = "command"
+argv = ["python3", "-B", "panel_agent.py"]
+read_only_args = ["--read-only"]
+
+[[task]]
+id = "make"
+type = "implement"
+title = "Write and review the demonstration result"
+prompt = "Write result.txt with the final wording: Verified candidate."
+outputs = ["result.txt"]
+gate = ["test -s result.txt"]
+reviewers = ["principled-priya", "clause-by-clause-chen"]

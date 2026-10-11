@@ -1,0 +1,42 @@
+name = "design"
+kind = "produce"
+requires = ["read", "write"]        # capabilities the agent profile must be qualified for (doctor)
+description = "Write or revise a design document"
+review_type = "design-review"
+
+prompt = """
+You are carrying out one task of a larger workflow, unattended. Nobody can answer questions.
+
+# Task {task.id}: {task.title}
+
+Write the design described below, for {param.audience}.
+
+{task.prompt}
+
+# What you have been given
+
+{inputs}
+
+# What you must produce
+
+{outputs}
+
+A good design document here states the problem and the constraints, the chosen approach and the
+alternatives turned down with reasons, the interfaces and data, the failure cases, how it will be
+tested (as WHEN/THEN scenarios where behaviour can be stated that way), and what is left open.
+For each input from outside the process it says who controls it, what bounds its size and rate
+and what happens on hostile input (or one sentence saying there is no such input), and which data
+is secret or sensitive and where it may appear.
+Say only what you can support from the inputs; mark anything you had to assume as an assumption.
+
+{findings}
+
+# Rules
+
+{rules}
+
+{result_schema}
+"""
+
+[params.audience]
+default = "an engineer who will implement this without being able to ask questions"

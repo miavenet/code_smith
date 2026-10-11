@@ -1,0 +1,209 @@
+# Build something new: the shape of examples/book-module.toml, with the project-specific parts as
+# parameters. The panels follow one reviewer plan: one
+# blocking reviewer per question, the language bench only through the *_reviewers parameters.
+# `runner new implementation --describe` lists the parameters; examples/templates/ has a filled-in
+# parameter file. The format is in docs/03-workflow-file.md, "Templates".
+
+name = "{param.name}"           # top-level keys come before the first table, as in any TOML file
+
+[template]
+description = "Build something new: design, tests from the design, implementation, report, sign-off"
+
+[template.params.name]
+required = true
+description = "Workflow name, also the report's file name, e.g. 'book-module'"
+
+[template.params.brief]
+required = true
+description = "The design brief, a file relative to the generated workflow"
+
+[template.params.design_doc]
+required = true
+description = "The design document the design task writes, e.g. 'docs/design/05-order-book.md'"
+
+[template.params.src]
+required = true
+description = "Glob of the code the implementation writes, e.g. 'src/book/**'"
+
+[template.params.tests]
+required = true
+description = "Glob of the tests written from the design, e.g. 'tests/book/**'"
+
+[template.params.test_cmd]
+required = true
+description = "Runs the new tests; it must fail before the implementation and pass after"
+
+[template.params.fail_pattern]
+required = true
+description = "Regex that test_cmd's output matches while the implementation is missing"
+
+[template.params.invariants]
+default = []
+description = "Commands that must stay green on the implementation: build, lint, the existing suite"
+
+[template.params.also_writes]
+default = []
+description = "Paths the implementation may change besides src, e.g. ['CMakeLists.txt']"
+
+[template.params.protected]
+default = []
+description = "Paths no task may change, besides tools/**, e.g. ['docs/spec/**']"
+
+[template.params.test_gates]
+default = []
+description = "Gates of the tests task, e.g. a scenario-coverage checker"
+
+[template.params.design_reviewers]
+default = []
+description = "Added to the design panel (principled-priya blocking; clause-by-clause-chen and timeline-tanaka advisory)"
+
+[template.params.test_reviewers]
+default = []
+description = "Added to the tests panel (meticulous-mira, blocking): the language bench's test reviewer if it has one"
+
+[template.params.code_reviewers]
+default = []
+description = "Added to the implementation panel (principled-priya blocking, dependable-diego advisory): the language bench, e.g. ['concerned-carlos'] for C++"
+
+[template.params.checks]
+default = []
+description = "Commands, each a check that verifies the implementation without changing the tree"
+
+[template.params.mutation]
+default = []
+description = "Commands that change source and put it back (mutation testers), each a check that verifies the implementation"
+
+[template.params.final_reviewers]
+default = []
+description = "Added to the report's panel (protocol-petra, blocking)"
+
+[template.params.report_checks]
+default = []
+description = "Read-only commands, each a check that verifies the report, e.g. a link checker"
+
+# -- the workflow -------------------------------------------------------------------------------
+
+[template.params.rules_file]
+default = ""
+description = "The project's rules file, shown to every author and reviewer (relative to the generated workflow); for example benches/cpp-standards.md for the C++ bench; a project that handles input it does not control appends benches/security.md to that one file, since a task has one rules file. Empty: none"
+
+[template.params.claude_model]
+default = "claude-opus-5-5"
+description = "The Claude model of every complexity level (edit the generated [model_policy] for a cheaper mechanical or standard model)"
+
+[template.params.codex_model]
+default = "gpt-6-astra"
+description = "The Codex model. Reviewers default to a model family other than the author's (reviewer_family), so Codex and Copilot are in every run's inventory; doctor finds out which of them this box can run and routing falls back from the others"
+
+[template.params.copilot_model]
+default = "claude-sonnet-5"
+description = "The GitHub Copilot CLI model"
+
+[template.params.agent]
+default = "claude"
+description = "The agent profile of every task: claude, codex, copilot, or a profile you add under [agents.NAME]"
+
+[defaults]
+agent = "{param.agent}"
+rules_file = "{param.rules_file}"
+max_attempts = 3
+protected = ["tools/**", "{param.protected}"]
+
+# Every family in the inventory has a model, so the reviewer-family rule can deal reviewers across
+# them and the author can fall back to them (docs/reviewer-families.md). `doctor` says which
+# this box can run.
+[model_policy.mechanical]
+claude = "{param.claude_model}"
+codex = "{param.codex_model}"
+copilot = "{param.copilot_model}"
+[model_policy.standard]
+claude = "{param.claude_model}"
+codex = "{param.codex_model}"
+copilot = "{param.copilot_model}"
+[model_policy.high]
+claude = "{param.claude_model}"
+codex = "{param.codex_model}"
+copilot = "{param.copilot_model}"
+
+
+[[task]]
+id = "design"
+type = "design"
+title = "Design {param.name}"
+complexity = "high"
+prompt_file = "{param.brief}"
+outputs = ["{param.design_doc}"]
+note = "Everything later is judged against this design. clause-by-clause-chen is advisory here; make it blocking (advisory = false) when the brief cites a specification."
+reviewers = [
+  "principled-priya",
+  { perspective = "clause-by-clause-chen", advisory = true },
+  { perspective = "timeline-tanaka", advisory = true },
+  "{param.design_reviewers}",
+]
+
+[[task]]
+id = "tests"
+type = "test"
+title = "Write the {param.name} tests from the design's scenarios"
+needs = ["design"]
+note = "Written from the accepted design, before the code; frozen once accepted, so implement cannot edit them."
+prompt = "One named test per WHEN/THEN scenario of the accepted design."
+outputs = ["{param.tests}"]
+gate = ["{param.test_gates}"]
+reviewers = ["meticulous-mira", "{param.test_reviewers}"]
+
+[[task]]
+id = "implement"
+type = "implement"
+title = "Implement {param.name}"
+needs = ["design", "tests"]
+prompt = "Implement the accepted design so that the accepted tests pass."
+outputs = ["{param.src}"]
+writes = ["{param.src}", "{param.also_writes}"]
+gate = ["{param.invariants}", { run = "{param.test_cmd}", new = true, fail_pattern = "{param.fail_pattern}" }]
+reviewers = ["principled-priya", { perspective = "dependable-diego", advisory = true }, "{param.code_reviewers}"]
+
+[[task]]
+for_each = "checks"
+id = "check-{each.n}"
+type = "check"
+title = "Check {each.n} of the implementation"
+note = "A failure sends implement back to rework."
+verifies = "implement"
+run = ["{each.value}"]
+
+[[task]]
+for_each = "mutation"
+id = "mutants-{each.n}"
+type = "check"
+title = "Mutation check {each.n}: every mutant is killed by some test"
+note = "Changes source and puts it back; the runner restores the candidate itself afterwards."
+verifies = "implement"
+restores = true
+run = ["{each.value}"]
+
+[[task]]
+id = "report"
+type = "summarize"
+title = "Summarise the {param.name} work"
+needs = ["implement"]
+prompt = "Cover the design decisions, what review found, and what remains open."
+outputs = ["docs/reports/{param.name}.md"]
+note = "The final review: is every requirement of the brief met, with evidence, and were the project's rules followed. Its reviewers see the diff from the design's acceptance to the report: the delivered change, not the report alone."
+review_diff_from = "design"
+reviewers = [{ perspective = "protocol-petra", advisory = false }, "{param.final_reviewers}"]
+
+[[task]]
+for_each = "report_checks"
+id = "report-check-{each.n}"
+type = "check"
+title = "Report check {each.n}"
+verifies = "report"
+read_only = true
+run = ["{each.value}"]
+
+[[task]]
+id = "signoff"
+type = "human"
+title = "Owner signs off {param.name}"
+needs = ["report"]

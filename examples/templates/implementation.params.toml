@@ -1,0 +1,40 @@
+# Parameters that make the implementation template give the equivalent of ../book-module.toml:
+# the same tasks, paths, gates and checks. The review panels follow the template's reviewer plan
+# instead of book-module's hand-picked ones, with the C++ bench added where a C++ project adds it.
+# Paths in tasks are relative to the repository; `brief` is relative to the generated workflow,
+# so this file expects the workflow to be written beside a briefs/ directory holding the brief
+# (copy examples/briefs/book-design.md there):
+#
+#   runner new implementation -o book.toml --params examples/templates/implementation.params.toml
+#   runner validate book.toml
+
+name = "book-module"
+brief = "briefs/book-design.md"
+design_doc = "docs/design/05-order-book.md"
+src = "src/book/**"
+tests = "tests/book/**"
+test_cmd = "ctest --test-dir build -R book --output-on-failure"
+fail_pattern = "book"
+
+invariants = ["cmake --build build"]
+also_writes = ["CMakeLists.txt"]
+protected = ["docs/spec/**", "tests/fixtures/**"]
+test_gates = ["python3 tools/check_scenarios.py --strict --prefix BOOK-"]
+# The C++ bench, seated by stage, and the project's C++ rules shown to every author and
+# reviewer (benches/cpp-standards.md, relative to the generated workflow: copy
+# examples/templates/benches/ beside it). A Python project passes none of this.
+# - design: api-aurelie blocks, because the brief adds a public C++ interface and the design is
+#   frozen once accepted (an API finding raised later cannot be acted on). Drop her, or seat her
+#   advisory, when the work adds no public interface.
+# - implement: concerned-carlos blocks (memory, exceptions, edge cases, races). neckbeard-nate is
+#   advisory and is seated only because the brief names a hot path ("no allocation on the update
+#   path once the book is warm"); without one, leave him out: every seat costs a call per round.
+# - tests: meticulous-mira is already the template's blocking reviewer; do not add her again.
+# - picky-paola (structure) belongs on a refactoring's final panel, not here.
+# A service that reads input it does not control adds "sentinel-sato" to design_reviewers and
+# code_reviewers, and appends benches/security.md to its rules file.
+design_reviewers = ["api-aurelie"]
+code_reviewers = ["concerned-carlos", { perspective = "neckbeard-nate", advisory = true }]
+rules_file = "benches/cpp-standards.md"
+mutation = ["python3 tools/run_mutants.py book"]
+report_checks = ["python3 tools/check_links.py docs/reports/book-module.md"]

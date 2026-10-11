@@ -1,0 +1,6 @@
+# Project-local Codex UI configuration. Hook definitions live in hooks.json.
+[tui]
+status_line = ["git-branch", "five-hour-limit", "weekly-limit", "model-with-reasoning", "used-tokens", "total-input-token", "total-output-token", "context-remaining", "current-dir"]
+
+[features]
+hooks = true

@@ -1,0 +1,43 @@
+name = "live-rework"
+[defaults]
+agent = "claude"
+model = "claude-opus-5"
+budget_usd = 3
+run_budget_usd = 30
+max_parallel = 2
+timeout_min = 4
+[agents.claude]
+kind = "claude"
+ignore_user_config = true
+permission_mode = "bypassPermissions"
+[agents.claude-review]
+kind = "claude"
+ignore_user_config = true
+permission_mode = "auto"
+[[task]]
+id = "design"
+type = "design"
+prompt = "Import the supplied draft.md into design.md byte-for-byte as the initial review candidate. This task ingests an existing design for review; do not preemptively rewrite the initial draft. If the review panel returns findings, revise design.md to resolve them."
+outputs = ["design.md"]
+gate = ["test -s design.md"]
+reviewers = [{perspective="principled-priya", agent="claude-review"}, {perspective="clause-by-clause-chen", agent="claude-review", prompt="Mandatory acceptance contract: add accepts exact built-in integers only, rejects bool in either position with TypeError, and returns exact integer sum. Any contrary design is blocking; cite its line and request the correction."}]
+[[task]]
+id = "implement"
+type = "implement"
+needs = ["design"]
+prompt = "Read design.md and implement adder.py and test_adder.py using unittest. Cover signed integers, zero, large integers, booleans on either side and other invalid types. Run python3 -B -m unittest -v. Keep this tiny and dependency-free."
+outputs = ["adder.py", "test_adder.py"]
+gate = ["python3 -B -m unittest -v"]
+reviewers = [{perspective="principled-priya", agent="claude-review"}, {perspective="dependable-diego", agent="claude-review", advisory=true}]
+[[task]]
+id = "summary"
+type = "summarize"
+needs = ["implement"]
+prompt = "Write summary.md from the run record. Include review rounds, finding IDs and resolutions, acceptance commits, spend, and the pending human signoff."
+outputs = ["summary.md"]
+gate = ["test -s summary.md"]
+[[task]]
+id = "signoff"
+type = "human"
+needs = ["summary"]
+title = "Review the adder, tests, and summary"

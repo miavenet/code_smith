@@ -1,0 +1,35 @@
+# Parameters for the debugging template: a defect whose only evidence is a sanitizer report,
+# reported in briefs/hist-race-33.md. ThreadSanitizer reports a data race in a version-stamped
+# histogram between the sampler's bucket update and the flusher's snapshot; whether that is the benign race the protocol
+# relies on or a real torn read is exactly what the diagnosis must decide, from the report's two
+# stacks and the memory orders in them. The memory-model-mei bench is passed per stage, never a
+# template default: blocking on the reproduction (it must run under the same preset and fail with
+# the report's kind and sites, and it is frozen once accepted), on the diagnosis and on the fix (no
+# suppression, attribute or sleep may stand in for an ordering fix). The C++ bench's concerned-carlos
+# joins the fix and siblings panels. The project's C++ rules reach every author and reviewer
+# through `rules_file`. `report` and `rules_file` are relative to the generated workflow, so write
+# it beside briefs/ and benches/ directories (copy examples/templates/briefs/ and
+# examples/templates/benches/ there):
+#
+#   runner new debugging -o debug-33.toml --params examples/templates/debugging-sanitizer.params.toml
+#   runner validate debug-33.toml
+#   runner graph debug-33.toml
+
+bug = "hist-race-33"
+report = "briefs/hist-race-33.md"
+symptom = "ThreadSanitizer: data race"
+area = "src/metrics/**"
+regression_test = "tests/metrics/hist_race_33_test.cpp"
+test_one = "cmake --build --preset tsan && ctest --preset tsan -R hist_race_33 --repeat until-fail:20 --output-on-failure"   # a race that did not fire is not a pass
+suite = "cmake --build --preset tsan && ctest --preset tsan --output-on-failure"
+
+invariants = ["cmake --build --preset default"]
+fix_max_files = 2                # an ordering fix touches the header and nothing else; a rewrite is not a fix
+fix_max_lines = 60
+
+rules_file = "benches/cpp-standards.md"
+
+reproduce_reviewers = ["memory-model-mei"]  # blocks a reproduction of another race, or one not run under the tool
+diagnose_reviewers = ["memory-model-mei"]   # blocks a cause the two stacks do not support
+fix_reviewers = ["memory-model-mei", "concerned-carlos"]   # ST blocks a fix that silences the tool; CC the ordering of the accesses
+siblings_reviewers = ["memory-model-mei", "concerned-carlos"]

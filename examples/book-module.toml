@@ -1,0 +1,86 @@
+# A worked example: design, test-first implementation and sign-off of one module.
+# `runner validate` and `runner graph` run on it (no agent is called); see ../docs/03-workflow-file.md for every key.
+#
+# The DAG after panel expansion (runner graph):
+#
+#   design ──► design.review.principled-priya ─┐
+#          └─► design.review.clause-by-clause-chen ────┴─► (design accepted)
+#                                                      ├─► tests ──► tests.review.clause-by-clause-chen ─┐
+#                                                      │                                           ▼
+#                                                      └──────────────────────────────────► implement
+#                                        implement ──► implement.review.{principled-priya, dependable-diego, protocol-petra}
+#                                                  └─► mutants (check, verifies implement)
+#                                   (implement accepted) ──► report ──► report-links (check) ──► signoff
+
+name = "book-module"
+root = ".."
+
+[defaults]
+agent = "claude"
+protected = ["docs/spec/**", "tests/fixtures/**", "tools/**"]
+
+[[task]]
+id = "design"
+type = "design"
+title = "Design the L2 order book"
+prompt_file = "briefs/book-design.md"  # relative to this file, like `library`. Task paths are relative to `root`
+outputs = ["docs/design/05-order-book.md"]
+reviewers = ["principled-priya", "clause-by-clause-chen"]
+
+[[task]]
+id = "tests"
+type = "test"
+title = "Write the order book tests from the design's scenarios"
+needs = ["design"]
+prompt = "One doctest TEST_CASE per BOOK- scenario in the design, named exactly as the scenario table says."
+outputs = ["tests/book/**"]
+gate = ["python3 tools/check_scenarios.py --strict --prefix BOOK-"]
+reviewers = ["clause-by-clause-chen"]
+
+[[task]]
+id = "implement"
+type = "implement"
+title = "Implement the L2 order book"
+needs = ["design", "tests"]            # tests/book/** is frozen by now: the author cannot edit the tests
+prompt = "Implement the order book so that the accepted tests pass."
+outputs = ["src/book/**"]
+writes = ["src/book/**", "CMakeLists.txt"]     # may also touch the build file; anything else is reverted
+gate = [
+  "cmake --build build",                                                        # invariant: must stay green
+  { run = "ctest --test-dir build -R book --output-on-failure", new = true, fail_pattern = "book" },
+]
+reviewers = [
+  "principled-priya",
+  "dependable-diego",
+  { perspective = "protocol-petra", advisory = true },
+]
+
+[[task]]
+id = "mutants"
+type = "check"
+title = "Every hand-picked mutant of the book is killed by some test"
+verifies = "implement"                 # a surviving mutant sends implement back to rework
+run = ["python3 tools/run_mutants.py book"]
+restores = true                        # it rewrites source and puts it back; the runner restores the candidate itself
+
+[[task]]
+id = "report"
+type = "summarize"
+title = "Summarise the book module work"
+needs = ["implement"]
+prompt = "Cover the design decisions, what review found, and what remains open."
+outputs = ["docs/reports/book-module.md"]
+
+[[task]]
+id = "report-links"
+type = "check"
+title = "The report's file references exist"
+verifies = "report"
+read_only = true
+run = ["python3 tools/check_links.py docs/reports/book-module.md"]
+
+[[task]]
+id = "signoff"
+type = "human"
+title = "Owner signs off the book module"
+needs = ["report"]

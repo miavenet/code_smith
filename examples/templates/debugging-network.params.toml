@@ -1,0 +1,32 @@
+# Parameters for the debugging template: a defect that starts from a packet capture, reported in
+# briefs/feed-gap-212.md. An AF_XDP multicast feed receiver raises gap alarms for messages that are
+# on the wire: the capture, the driver's ring counters and the application's own explanation
+# disagree, so the diagnosis needs someone who reads the stack and the driver's receive path. The
+# reproduction replays the committed capture through the receiver's ring-handling code.
+# The packet-trace-pradip domain bench is passed per stage, never a template default: blocking on
+# every stage, the reproduction included, because only it can tell a replay of the reported frames
+# from a replay of some other loss, and the reproduction is frozen once accepted. `report` is relative to the generated
+# workflow, so write it beside a briefs/ directory (copy examples/templates/briefs/ there):
+#
+#   runner new debugging -o debug-212.toml --params examples/templates/debugging-network.params.toml
+#   runner validate debug-212.toml
+#   runner graph debug-212.toml
+#
+# Assumes the repository ignores __pycache__/ and .pytest_cache/, as Python projects do: a gate that
+# leaves an untracked file behind has changed the candidate, and fails.
+
+bug = "feed-gap-212"
+report = "briefs/feed-gap-212.md"
+symptom = "GAP after seq \\d+"
+area = "src/feedrx/**"
+regression_test = "tests/regression/test_feed_gap_212.py"
+test_one = "python3 -m pytest -q tests/regression/test_feed_gap_212.py"
+suite = "python3 -m pytest -q tests"
+
+invariants = ["python3 -m compileall -q src"]
+fix_max_files = 3                # a ring-refill fix is small; anything larger is a rewrite
+
+reproduce_reviewers = ["packet-trace-pradip"]  # blocks a replay that does not show the report's frames or counters: the test is frozen once accepted
+diagnose_reviewers = ["packet-trace-pradip"]   # blocks a diagnosis the capture, counters or ring code contradict
+fix_reviewers = ["packet-trace-pradip"]        # blocks a fix at the wrong layer, or one breaking descriptor ownership
+siblings_reviewers = ["packet-trace-pradip"]   # the same code, the same bench

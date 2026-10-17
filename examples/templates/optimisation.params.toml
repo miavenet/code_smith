@@ -1,0 +1,65 @@
+# Parameters for the optimisation template (a pilot, opt-in), for the book module of
+# implementation.params.toml once it is accepted: its brief names the hot path, "no allocation on
+# the update path once the book is warm". Paths in tasks are relative to the repository; `brief`
+# and `rules_file` are relative to the generated workflow, so this file expects the workflow to be
+# written beside a briefs/ directory holding the brief (copy examples/templates/briefs/) and a
+# benches/ directory (copy examples/templates/benches/):
+#
+#   cat benches/performance.md >> benches/cpp-standards.md   # one rules file per task
+#   cp examples/tools/bench_contract.py tools/               # the gate's contract script
+#   runner new optimisation -o book-opt.toml --params examples/templates/optimisation.params.toml
+#   runner validate book-opt.toml
+#
+# The benchmark writes build/bench/book.json (build/ is ignored) in the shape
+# tools/bench_contract.py documents, one list of samples per repetition; the baseline task copies
+# it to bench/book/baseline.json.
+
+name = "book-update-latency"
+brief = "briefs/book-update-latency.md"
+src = "src/book/**"
+protected = ["tests/book/**", "docs/spec/**"]
+also_writes = ["CMakeLists.txt"]      # the baseline registers bench_book and book_equivalence
+# The suite configures and builds before it tests: the acceptance replay runs the gates on a clean
+# checkout, which has no build/. bench_cmd follows it in every gate list, so it builds its target.
+test_cmd = """\
+  cmake -S . -B build && cmake --build build \
+  && ctest --test-dir build -R book --output-on-failure"""
+
+bench = "bench/book/**"
+bench_cmd = "cmake --build build --target bench_book && build/bench_book -o build/bench/book.json"
+bench_out = "build/bench/book.json"
+baseline = "bench/book/baseline.json"
+threshold_pct = 5
+# The session reference: the live gates of optimise see HEAD at the accepted baseline commit, so
+# this exports HEAD into the ignored build/base, builds the benchmark there and runs it in the
+# gate's session; the contract then judges the candidate against it. The benchmark reports the
+# same `command` label wherever it is built, so the reference matches the committed baseline.
+baseline_bench_cmd = ["""\
+  rm -rf build/base && mkdir -p build/base && git archive HEAD | tar -x -C build/base \
+  && cmake -S build/base -B build/base/build \
+  && cmake --build build/base/build --target bench_book \
+  && build/base/build/bench_book -o build/bench/book-session.json"""]
+session_ref = "build/bench/book-session.json"
+repetitions = 10
+
+equivalence_test = "tests/equivalence/book/**"
+# The equivalence check configures and builds too: a check runs on the tree it is given, and a
+# binary an earlier gate left in build/ is not evidence about the candidate under review.
+equivalence_cmd = """\
+  cmake -S . -B build && cmake --build build \
+  && ctest --test-dir build -R book_equivalence --output-on-failure"""
+
+# The declared budget: the reviewers read it from the optimise task's params. No p99 budget is
+# declared here (0), so latency is judged by the regression threshold alone. The allocation
+# budget is the brief's statement, not a measurement: no gate measures allocation, so it is never
+# exceeded in the gate evidence. nanosecond-nadia blocks on an allocation on the update path only
+# through the hot-path rule PF-C01, cited by id with its cost labelled measured or estimate, and
+# on the measurement requirements.
+hot_path = "the update path once the book is warm"
+latency_budget_p99_ns = 0
+alloc_budget = "no allocation on the update path once the book is warm"
+
+# The book's update path takes no atomics, so memory-model-mei is not seated; add her here when
+# the hot path does. concerned-carlos keeps memory, exceptions and edge cases of the candidate.
+correctness_reviewers = ["concerned-carlos"]
+rules_file = "benches/cpp-standards.md"

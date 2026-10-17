@@ -1,0 +1,186 @@
+# Fix a reported defect: reproduce it as a failing test, explain it, fix the cause, sweep the same
+# pattern elsewhere, and let the owner sign off. The order is the proof: `reproduce` is accepted
+# only while the regression test FAILS with the reported symptom, and `fix` only when the same,
+# frozen file PASSES. The panels follow one reviewer plan: one
+# blocking reviewer per question, a language or domain bench (e.g. packet-trace-pradip) only through
+# the *_reviewers parameters. `runner new debugging --describe` lists the parameters;
+# examples/templates/ has a generic and a networking parameter file. The format is in
+# docs/03-workflow-file.md, "Templates".
+
+name = "debug-{param.bug}"      # top-level keys come before the first table, as in any TOML file
+
+[template]
+description = "Fix a reported defect: reproduce as a failing test, diagnose, fix, sweep siblings, sign-off"
+
+[template.params.bug]
+required = true
+description = "Short id used in the workflow name and in paths, e.g. 'div-zero-17'"
+
+[template.params.report]
+required = true
+description = "The bug report, a file relative to the generated workflow: what was seen, where, how"
+
+[template.params.symptom]
+required = true
+description = "Regex the failing test's output matches, e.g. 'ZeroDivisionError'; it must fail for THIS reason"
+
+[template.params.area]
+required = true
+description = "Glob of the code the fix may change, e.g. 'src/calc/**'"
+
+[template.params.tests]
+default = "tests/**"
+description = "Glob of the tests; the fix may not change any of them"
+
+[template.params.regression_test]
+required = true
+description = "The file the reproduction writes, e.g. 'tests/regression/test_div_zero_17.py'; protected by name in every later task, also when it lies inside the area"
+
+[template.params.test_one]
+required = true
+description = "Runs only the regression test; it must name regression_test literally"
+
+[template.params.suite]
+required = true
+description = "Runs the whole test suite; it gates the fix and the siblings, not the reproduction"
+
+[template.params.invariants]
+default = []
+description = "Commands that must stay green at every stage: build, lint"
+
+[template.params.fix_max_files]
+default = 5
+description = "Diff budget of the fix: files changed from its base"
+
+[template.params.fix_max_lines]
+default = 150
+description = "Diff budget of the fix: lines added plus deleted"
+
+[template.params.reproduce_reviewers]
+default = []
+description = "Added to the reproduction panel (root-cause-rosa, blocking): a domain bench blocks here when only it can tell the reported failure from a neighbouring one"
+
+[template.params.diagnose_reviewers]
+default = []
+description = "Added to the diagnosis panel (root-cause-rosa blocking, principled-priya advisory)"
+
+[template.params.fix_reviewers]
+default = []
+description = "Added to the fix panel (root-cause-rosa and principled-priya blocking): the language or domain bench"
+
+[template.params.siblings_reviewers]
+default = []
+description = "Added to the siblings panel (root-cause-rosa and principled-priya, blocking): the same bench as the fix, since it changes the same code"
+
+# -- the workflow -------------------------------------------------------------------------------
+
+[template.params.rules_file]
+default = ""
+description = "The project's rules file, shown to every author and reviewer (relative to the generated workflow); for example benches/cpp-standards.md for the C++ bench; a project that handles input it does not control appends benches/security.md to that one file, since a task has one rules file. Empty: none"
+
+[template.params.claude_model]
+default = "claude-opus-5-5"
+description = "The Claude model of every complexity level (edit the generated [model_policy] for a cheaper mechanical or standard model)"
+
+[template.params.codex_model]
+default = "gpt-6-astra"
+description = "The Codex model. Reviewers default to a model family other than the author's (reviewer_family), so Codex and Copilot are in every run's inventory; doctor finds out which of them this box can run and routing falls back from the others"
+
+[template.params.copilot_model]
+default = "claude-sonnet-5"
+description = "The GitHub Copilot CLI model"
+
+[template.params.agent]
+default = "claude"
+description = "The agent profile of every task: claude, codex, copilot, or a profile you add under [agents.NAME]"
+
+[defaults]
+agent = "{param.agent}"
+rules_file = "{param.rules_file}"
+max_attempts = 3
+run_budget_usd = 30.0
+
+# Every family in the inventory has a model, so the reviewer-family rule can deal reviewers across
+# them and the author can fall back to them (docs/reviewer-families.md). `doctor` says which
+# this box can run.
+[model_policy.mechanical]
+claude = "{param.claude_model}"
+codex = "{param.codex_model}"
+copilot = "{param.copilot_model}"
+[model_policy.standard]
+claude = "{param.claude_model}"
+codex = "{param.codex_model}"
+copilot = "{param.copilot_model}"
+[model_policy.high]
+claude = "{param.claude_model}"
+codex = "{param.codex_model}"
+copilot = "{param.copilot_model}"
+
+
+[[task]]
+id = "reproduce"
+type = "reproduce"
+title = "Reproduce {param.bug} as a failing test"
+note = "Accepted only while the test FAILS with the symptom; then frozen. The suite is not a gate here: the new test fails by design."
+prompt_file = "{param.report}"
+params = { symptom = "{param.symptom}", test_command = "{param.test_one}" }
+outputs = ["{param.regression_test}", "docs/debug/{param.bug}/reproduction.md"]
+gate = ["{param.invariants}", { run = "{param.test_one}", expect = "fail", fail_pattern = "{param.symptom}" }]
+reviewers = ["root-cause-rosa", "{param.reproduce_reviewers}"]
+
+[[task]]
+id = "diagnose"
+type = "diagnose"
+title = "Find the root cause of {param.bug}"
+needs = ["reproduce"]
+note = "Each attempt is one hypothesis tested against its nearest alternative; a rejected one is the next attempt's starting point."
+prompt_file = "{param.report}"
+complexity = "high"
+max_attempts = 4
+outputs = ["docs/debug/{param.bug}/diagnosis.md"]
+reviewers = [
+  "root-cause-rosa",
+  { perspective = "principled-priya", advisory = true },
+  "{param.diagnose_reviewers}",
+]
+
+[[task]]
+id = "fix"
+type = "fix"
+title = "Fix the root cause of {param.bug}"
+needs = ["reproduce", "diagnose"]
+note = "The same frozen regression test must now PASS. It cannot be edited here: it is protected by name, wherever it lies (inside the area too), and so are the tests."
+prompt = "Fix the root cause of {param.bug} named in the accepted diagnosis."
+outputs = ["{param.area}"]
+protected = ["{param.tests}", "{param.regression_test}"]
+max_changed_files = "{param.fix_max_files}"
+max_changed_lines = "{param.fix_max_lines}"
+gate = [
+  "{param.invariants}",
+  "{param.suite}",
+  { run = "{param.test_one}", new = true, fail_pattern = "{param.symptom}" },
+]
+reviewers = [
+  "root-cause-rosa",
+  "principled-priya",
+  "{param.fix_reviewers}",
+]
+
+[[task]]
+id = "siblings"
+type = "implement"
+title = "Handle the other sites of {param.bug}'s pattern"
+needs = ["fix"]
+note = "Claims the fix's frozen area on purpose: when this candidate changes the area, the fix's gates re-run on it; its own gates run the suite either way."
+prompt = "For each other site the accepted diagnosis lists, fix it with its own regression test, or state in the output why it is not affected."
+outputs = ["docs/debug/{param.bug}/siblings.md"]
+writes = ["docs/debug/{param.bug}/siblings.md", "{param.area}", "tests/regression/{param.bug}-siblings/**"]
+protected = ["{param.regression_test}"]
+gate = ["{param.invariants}", "{param.suite}"]
+reviewers = ["root-cause-rosa", "principled-priya", "{param.siblings_reviewers}"]
+
+[[task]]
+id = "signoff"
+type = "human"
+title = "Owner accepts the fix of {param.bug}"
+needs = ["siblings"]

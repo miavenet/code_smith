@@ -1,0 +1,50 @@
+name = "characterise"
+kind = "produce"
+requires = ["read", "write", "execute"]        # capabilities the agent profile must be qualified for (doctor)
+description = "Pin today's observable behaviour with tests and baselines before a refactoring"
+review_type = "code-review"
+
+prompt = """
+You are carrying out one task of a larger workflow, unattended. Nobody can answer questions.
+
+# Task {task.id}: {task.title}
+
+A refactoring will follow that must keep this invariant:
+
+{param.invariant}
+
+Write the safety net it will be held to: characterisation tests that pin today's observable
+behaviour of the area through its public interface, and the baseline files named in the outputs.
+
+{task.prompt}
+
+# What you have been given
+
+{inputs}
+
+# What you must produce
+
+{outputs}
+
+- Cover edge and error cases, not only the common path: what is returned, what is raised, the
+  order of results, side effects others rely on.
+- Assert behaviour, not implementation details a refactoring may legitimately change (private
+  names, internal call order, exact log wording nobody reads).
+- The tests must PASS on the current code. Do not change the code: where today's behaviour looks
+  wrong, pin it anyway and say so in your summary.
+
+# Acceptance commands
+
+{gates}
+
+{findings}
+
+# Rules
+
+{rules}
+
+{result_schema}
+"""
+
+[params.invariant]
+required = true

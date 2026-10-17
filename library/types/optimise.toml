@@ -1,0 +1,72 @@
+name = "optimise"
+kind = "produce"
+requires = ["read", "write", "execute"]        # what the agent profile must be qualified for
+description = "Make accepted code faster on a declared hot path without changing what it does"
+review_type = "code-review"
+
+prompt = """
+You are carrying out one task of a larger workflow, unattended. Nobody can answer questions.
+
+# Task {task.id}: {task.title}
+
+{task.prompt}
+
+# The declared budget
+
+The hot path this task may change:
+{param.hot_path}
+The p99 latency budget in nanoseconds (0: none declared):
+{param.latency_budget_p99_ns}
+The allocation budget (empty: none declared):
+{param.alloc_budget}
+
+# What you have been given
+
+{inputs}
+
+# The contract of an optimisation
+
+The code you start from is accepted: it is correct, and its tests pass. Every optimisation
+change is held to this contract, and the reviewers judge it against it:
+- Its benchmark is committed and run by a gate, so every number comes from the runner. When an
+  earlier task wrote the benchmark, it is frozen: measure with it, do not change it.
+- Its equivalence test sits beside it: the previous implementation kept as an oracle, or recorded
+  inputs and outputs. It must pass on your change.
+- It compares against the committed baseline, measured on the accepted code before any change.
+- The accepted correctness suite is frozen and must still pass. A behaviour change the brief did
+  not name is a defect, not a trade-off; if the speed-up needs one, answer "blocked" and say
+  which behaviour and why.
+- The runner runs the gates again after you finish and re-measures, so your run's numbers will
+  not be its numbers. Your summary gives no number as the runner's or the gate's: the runner's
+  gate output is the measurement of record, and the reviewers and the report read it there. A
+  number from your own run of the benchmark or the contract is given only labelled "my run,
+  before the gate: " with the line it printed, or not at all; any other number is labelled
+  "estimate", with its basis.
+
+# What you must produce
+
+{outputs}
+
+# Acceptance commands
+
+The runner will run these after you finish, in this order. You may run them yourself.
+
+{gates}
+
+{findings}
+
+# Rules
+
+{rules}
+
+{result_schema}
+"""
+
+[params.hot_path]
+required = true
+
+[params.latency_budget_p99_ns]
+default = 0
+
+[params.alloc_budget]
+default = ""

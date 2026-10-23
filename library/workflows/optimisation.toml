@@ -1,0 +1,308 @@
+# Make one accepted hot-path component faster without changing what it does. A pilot, opt-in: no
+# other template seats nanosecond-nadia or names the optimise type. Correctness comes first by
+# structure: the baseline pins today's behaviour and numbers before any change, the benchmark and
+# the equivalence test are then frozen, the correctness suite and the equivalence test must pass
+# on the optimised candidate, and the correctness reviewers sit on its panel beside the
+# performance reviewer. Measurement is checked by commands (examples/tools/bench_contract.py,
+# copied to tools/), never by a reviewer's reading. `runner new optimisation --describe` lists the
+# parameters; examples/templates/optimisation.params.toml is a filled-in one. The format is in
+# docs/03-workflow-file.md, "Templates". A string that ends a line with a backslash continues on
+# the next line as one line of text.
+
+name = "{param.name}"           # top-level keys come before the first table, as in any TOML file
+
+[template]
+description = """\
+  Make accepted hot-path code faster: baseline, optimise, equivalence, report, sign-off \
+  (pilot, opt-in)"""
+
+[template.params.name]
+required = true
+description = "Workflow name, also the report's file name, e.g. 'book-update-latency'"
+
+[template.params.brief]
+required = true
+description = "The optimisation brief, a file relative to the generated workflow"
+
+[template.params.src]
+required = true
+description = "Glob of the code the optimisation may change: the hot path, e.g. 'src/book/**'"
+
+[template.params.protected]
+default = []
+description = """\
+  Paths no task may change, besides tools/**: the accepted correctness suite, e.g. \
+  ['tests/book/**']"""
+
+[template.params.also_writes]
+default = []
+description = """\
+  Paths the baseline task may change besides its outputs, to build the benchmark and the \
+  equivalence test, e.g. ['CMakeLists.txt']. Not writable by the optimisation"""
+
+[template.params.test_cmd]
+required = true
+description = """\
+  The accepted correctness suite (build first if it needs one); it must pass before the \
+  optimisation and after it"""
+
+[template.params.bench]
+required = true
+description = """\
+  Glob of the benchmark source the baseline task writes, frozen once accepted, e.g. \
+  'bench/book/**'"""
+
+[template.params.bench_cmd]
+required = true
+description = """\
+  Runs the benchmark with fixed flags and pinning, and writes its JSON result to bench_out: \
+  one list of samples per repetition"""
+
+[template.params.bench_out]
+required = true
+description = "Where bench_cmd writes its result: a path git ignores, e.g. 'build/bench/book.json'"
+
+[template.params.baseline]
+required = true
+description = """\
+  The committed baseline result: bench_out of the accepted code, copied unchanged, e.g. \
+  'bench/book/baseline.json'"""
+
+[template.params.baseline_bench_cmd]
+default = []
+description = """\
+  At most one command: runs the benchmark of the committed baseline code (a build of the \
+  accepted tree kept beside the candidate's) in the optimise gate's session and writes its \
+  result to session_ref; the contract judges the candidate against it (one session) and \
+  refuses a session that drifted by the threshold or more. [] : the candidate is judged against \
+  the committed baseline and session drift is not checked, a limitation of the pilot, and the \
+  gate says so"""
+
+[template.params.session_ref]
+default = ""
+description = """\
+  Where baseline_bench_cmd writes its result: a path git ignores, e.g. \
+  'build/bench/book-session.json'; empty when baseline_bench_cmd is []"""
+
+[template.params.drift_stat]
+default = "p50"
+description = """\
+  The statistic the session drift is judged on: p50, p99 or both (the contract's \
+  --drift-stat; the other's drift is printed for information). p50 by default: a machine that \
+  runs uniformly slower shifts the p50, while the p99 of identical code moved 5-7% between \
+  runs on a laptop container and refused a C++ lab's run three times. The candidate's \
+  regression check (p50 and p99) does not change"""
+
+[template.params.threshold_pct]
+default = 5
+description = """\
+  A candidate p50 or p99 worse than the baseline's by more than this percentage, beyond the \
+  noise, is a regression; the spread between the baseline's repetitions must be below it"""
+
+[template.params.repetitions]
+default = 10
+description = "The fewest benchmark repetitions a result file may hold"
+
+[template.params.equivalence_test]
+required = true
+description = """\
+  Glob of the equivalence test the baseline task writes, frozen once accepted: the current \
+  implementation kept as an oracle, or recorded inputs and outputs"""
+
+[template.params.equivalence_cmd]
+required = true
+description = """\
+  Runs the equivalence test against the oracle (build first if it needs one: the check runs on \
+  the tree it is given); it must pass on the accepted code and on the optimised candidate"""
+
+[template.params.hot_path]
+required = true
+description = """\
+  The hot path the optimisation may change, in words, e.g. 'the update path once the book \
+  is warm'"""
+
+[template.params.latency_budget_p99_ns]
+default = 0
+description = """\
+  The p99 latency budget of the hot path in nanoseconds, per the benchmark's unit (ns or \
+  ns/<thing>, e.g. ns/packet); a benchmark in another unit is not compared; 0: none \
+  declared, and the performance review is advisory"""
+
+[template.params.alloc_budget]
+default = ""
+description = """\
+  The allocation budget of the hot path in words, e.g. 'no allocation per update once \
+  warm'; empty: none declared"""
+
+[template.params.correctness_reviewers]
+default = ["concerned-carlos"]
+description = """\
+  The correctness reviewers of the optimised candidate, blocking, beside nanosecond-nadia, \
+  gatekeeper-gao and meticulous-mira; add memory-model-mei when the hot path touches \
+  atomics. [] leaves the seat empty"""
+
+# -- the workflow -------------------------------------------------------------------------------
+
+[template.params.rules_file]
+default = "benches/cpp-standards.md"
+description = """\
+  The project's rules file, relative to the generated workflow. benches/performance.md must \
+  be appended to it (a task has one rules file): its PF-C rules and PF-M measurement \
+  requirements are what the reviewers cite"""
+
+[template.params.claude_model]
+default = "claude-opus-5-5"
+description = "The Claude model of every complexity level"
+
+[template.params.codex_model]
+default = "gpt-6-astra"
+description = "The Codex model"
+
+[template.params.copilot_model]
+default = "claude-sonnet-5"
+description = "The GitHub Copilot CLI model"
+
+[template.params.agent]
+default = "claude"
+description = """\
+  The agent profile of every task: claude, codex, copilot, or a profile you add under \
+  [agents.NAME]"""
+
+[template.params.timeout_min]
+default = 90
+description = """\
+  Minutes per agent call ([defaults] timeout_min; the runner's default is 30). 90: the \
+  baseline author builds the suite, the benchmark and the equivalence test and runs the \
+  benchmark's repetitions, and 30 timed out twice on a C++ lab's baseline"""
+
+[template.params.gate_timeout_min]
+default = 40
+description = """\
+  Minutes per gate or check command ([defaults] gate_timeout_min; the runner's default is \
+  20). 40: the optimise gate that measures the session reference builds a second tree \
+  before it runs the benchmark"""
+
+[defaults]
+agent = "{param.agent}"
+rules_file = "{param.rules_file}"
+max_attempts = 3
+timeout_min = "{param.timeout_min}"
+gate_timeout_min = "{param.gate_timeout_min}"
+protected = ["tools/**", "{param.protected}"]
+# The acceptance replay re-runs the benchmark; beside the reviewer agents it would measure their
+# load, not the candidate. Serial, as for heavy builds (docs/02-concepts.md, acceptance replay).
+replay_beside_panel = false
+
+[model_policy.mechanical]
+claude = "{param.claude_model}"
+codex = "{param.codex_model}"
+copilot = "{param.copilot_model}"
+[model_policy.standard]
+claude = "{param.claude_model}"
+codex = "{param.codex_model}"
+copilot = "{param.copilot_model}"
+[model_policy.high]
+claude = "{param.claude_model}"
+codex = "{param.codex_model}"
+copilot = "{param.copilot_model}"
+
+
+[[task]]
+id = "baseline"
+type = "characterise"
+title = "Baseline {param.name}: benchmark, equivalence oracle and numbers of the accepted code"
+note = """\
+  Runs on the accepted code before any change. Its outputs are frozen once accepted, so the \
+  optimisation is measured with the same benchmark and judged by the same oracle."""
+prompt = """\
+Write three things, and change no code:
+- the benchmark of the hot path ({param.hot_path}) under {param.bench}, run by \
+`{param.bench_cmd}`, which writes its JSON result to {param.bench_out} in the shape \
+tools/bench_contract.py documents (command, pinning, warm, and per repetition one latency per \
+measured operation);
+- the equivalence test under {param.equivalence_test}, run by `{param.equivalence_cmd}`: the \
+current implementation kept as an oracle, or recorded inputs and outputs of it, covering the \
+inputs the brief and the existing tests name;
+- the baseline: run `{param.bench_cmd}` on this unchanged code and copy {param.bench_out} to \
+{param.baseline} as it is. Never write a number by hand."""
+outputs = ["{param.bench}", "{param.equivalence_test}", "{param.baseline}"]
+writes = [
+  "{param.bench}", "{param.equivalence_test}", "{param.baseline}", "{param.also_writes}",
+]
+# The baseline holds every sample of every repetition (about 20,000 numbers): no reviewer can
+# judge it by reading, and the gate's `--validate` judges it. Its reviewers see a summary of it.
+review_diff_summarised = ["{param.baseline}"]
+gate = [
+  "{param.test_cmd}",
+  "{param.equivalence_cmd}",
+  "{param.bench_cmd}",
+  """\
+  python3 tools/bench_contract.py --validate {param.baseline} --repetitions {param.repetitions} \
+  --threshold-pct {param.threshold_pct}""",
+]
+reviewers = ["nanosecond-nadia", "meticulous-mira"]
+[task.params]
+invariant = "Only speed may change: every output the equivalence test records stays the same"
+
+[[task]]
+id = "optimise"
+type = "optimise"
+title = "Optimise {param.name}"
+needs = ["baseline"]
+prompt_file = "{param.brief}"
+note = """\
+  The correctness suite, the benchmark and the contract run in that order; an inconclusive \
+  comparison passes the gate, and the reviewers read it in the evidence ("inconclusive, \
+  worse" blocks in review). The correctness reviewers judge the optimised candidate."""
+outputs = ["{param.src}"]
+writes = ["{param.src}"]
+gate = [
+  "{param.test_cmd}",
+  "{param.bench_cmd}",
+  "{param.baseline_bench_cmd}",
+  """\
+  python3 tools/bench_contract.py {param.baseline} {param.bench_out} \
+  --threshold-pct {param.threshold_pct} --repetitions {param.repetitions} \
+  --budget-p99-ns {param.latency_budget_p99_ns} --session-ref '{param.session_ref}' \
+  --drift-stat {param.drift_stat} || { code=$?; [ $code -eq 3 ] || exit $code; }""",
+]
+reviewers = [
+  "nanosecond-nadia", "gatekeeper-gao", "meticulous-mira", "{param.correctness_reviewers}",
+]
+[task.params]
+hot_path = "{param.hot_path}"
+latency_budget_p99_ns = "{param.latency_budget_p99_ns}"
+alloc_budget = "{param.alloc_budget}"
+
+[[task]]
+id = "equivalence"
+type = "check"
+title = "Equivalence of the optimised {param.name} with the oracle (PF-M05)"
+note = """\
+  Runs beside the optimise panel as a read-only check, not before it. A failure sends optimise \
+  back to rework."""
+verifies = "optimise"
+read_only = true
+run = ["{param.equivalence_cmd}"]
+
+[[task]]
+id = "report"
+type = "summarize"
+title = "Summarise the {param.name} optimisation"
+needs = ["optimise"]
+prompt = """\
+Give the baseline and the candidate numbers exactly as the gates printed them (quote the \
+contract's table and result line), what review found, and what remains open. A number no gate \
+printed is an estimate and is called one."""
+outputs = ["docs/reports/{param.name}.md"]
+note = """\
+  Its reviewer sees the diff from the baseline's acceptance: the optimisation and the report \
+  together. Every performance claim must trace to a gate line."""
+review_diff_from = "baseline"
+reviewers = [{ perspective = "protocol-petra", advisory = false }]
+
+[[task]]
+id = "signoff"
+type = "human"
+title = "Owner signs off {param.name}"
+needs = ["report"]

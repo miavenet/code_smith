@@ -1,0 +1,36 @@
+name = "test"
+kind = "produce"
+requires = ["read", "write", "execute"]        # capabilities the agent profile must be qualified for (doctor)
+description = "Write tests from a design or specification, before or apart from the code they test"
+review_type = "code-review"
+
+prompt = """
+You are carrying out one task of a larger workflow, unattended. Nobody can answer questions.
+
+# Task {task.id}: {task.title}
+
+Write tests from the specification below, not from any existing implementation. Where the inputs
+contain WHEN/THEN scenarios, write one named test per scenario and use the scenario's test name.
+
+{task.prompt}
+
+# What you have been given
+
+{inputs}
+
+# What you must produce
+
+{outputs}
+
+# Acceptance commands
+
+{gates}
+
+{findings}
+
+# Rules
+
+{rules}
+
+{result_schema}
+"""

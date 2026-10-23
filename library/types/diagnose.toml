@@ -1,0 +1,50 @@
+name = "diagnose"
+kind = "produce"
+requires = ["read", "write", "execute"]        # capabilities the agent profile must be qualified for (doctor)
+description = "Explain a reproduced defect: hypotheses tested by experiment, the root cause, the same pattern elsewhere"
+review_type = "design-review"
+complexity = "high"
+
+prompt = """
+You are carrying out one task of a larger workflow, unattended. Nobody can answer questions.
+
+# Task {task.id}: {task.title}
+
+Find the root cause of the defect below. A regression test that reproduces it has been accepted
+and is frozen; it is among your inputs. This task explains the defect. It does not fix it.
+
+{task.prompt}
+
+# What you have been given
+
+{inputs}
+
+# What you must produce
+
+{outputs}
+
+The diagnosis must contain:
+
+1. The hypothesis this attempt tested, the experiment that tests it and its observed result, and
+   the nearest alternative the experiment rules out. An experiment counts only if its result
+   would have differed had the hypothesis been wrong. An earlier attempt's rejected hypothesis is
+   listed with the experiment that rejected it.
+2. The root cause at `path:line`, and the causal chain from it to the reported symptom.
+3. Why the frozen regression test exercises that cause.
+4. Every other place with the same pattern, and the search you used to find them (the command or
+   query, so a reviewer can run it again).
+
+Experiments that need code changes are done in a copy outside the repository. Any change you
+leave in the tree outside your outputs is reverted and fails the attempt.
+
+If review rejects the stated cause, the next attempt is the next hypothesis: say what the
+rejected one got wrong.
+
+{findings}
+
+# Rules
+
+{rules}
+
+{result_schema}
+"""

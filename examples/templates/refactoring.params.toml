@@ -1,0 +1,38 @@
+# Parameters for the refactoring template: split a large Python module in three steps, with the
+# public surface pinned as a baseline. Paths in tasks are relative to the repository; `brief` is
+# relative to the generated workflow, so write it beside a briefs/ directory holding the brief
+# (copy examples/templates/briefs/ there):
+#
+#   runner new refactoring -o split-pricing.toml --params examples/templates/refactoring.params.toml
+#   runner validate split-pricing.toml
+#   runner check-gates split-pricing.toml
+#
+# check-gates: characterise's own gates and the steps' runs of the characterisation tests and the
+# baseline comparison "fail as intended (waits for characterise)": they name its outputs, the glob
+# char_tests by its directory, before characterise has written them.
+#
+# Assumes the repository ignores __pycache__/ and .pytest_cache/, as Python projects do: a gate that
+# leaves an untracked file behind has changed the candidate, and fails.
+
+name = "split-pricing"
+brief = "briefs/split-pricing.md"
+invariant = "Every name exported by pricing returns, raises and prints exactly as before; the CLI output is byte-identical."
+area = "src/pricing/**"
+char_tests = "tests/characterisation/split-pricing/**"
+test_char = "python3 -m pytest -q tests/characterisation/split-pricing"
+suite = "python3 -m pytest -q tests"
+
+steps = [
+  "Move the fee schedules and fee_for into src/pricing/fees.py; pricing re-exports fee_for",
+  "Move the rounding rules and round_price into src/pricing/rounding.py; pricing re-exports round_price",
+  "Replace the module-level state shared by quote and the fee schedules with an explicit PricingContext passed from quote",
+]
+
+invariants = ["python3 -m compileall -q src"]
+baselines = ["docs/refactor/split-pricing/api-surface.txt"]
+equivalence = ["python3 tools/api_surface.py pricing | diff -u docs/refactor/split-pricing/api-surface.txt -"]
+mutation = ["python3 tools/run_mutants.py src/pricing --tests tests/characterisation/split-pricing"]
+# final-equivalence already re-runs test_char and equivalence on the final tree; final_checks adds others.
+final_checks = ["python3 tools/check_links.py docs/refactor/split-pricing/final.md"]
+# A C++ project would add its bench on the final panel, where "is the structure better" is asked:
+# final_reviewers = [{ perspective = "picky-paola", advisory = true }], step_reviewers = [].

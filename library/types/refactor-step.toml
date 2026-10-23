@@ -1,0 +1,56 @@
+name = "refactor-step"
+kind = "produce"
+requires = ["read", "write", "execute"]        # capabilities the agent profile must be qualified for (doctor)
+description = "One bounded step of a refactoring: change structure, not behaviour"
+review_type = "code-review"
+max_changed_files = 15         # each step stays reviewable. A task may set its own
+max_changed_lines = 300
+
+prompt = """
+You are carrying out one task of a larger workflow, unattended. Nobody can answer questions.
+
+# Task {task.id}: {task.title}
+
+Do this step of the refactoring, and nothing else:
+
+{param.step}
+
+The invariant that must hold:
+
+{param.invariant}
+
+{task.prompt}
+
+# What you have been given
+
+{inputs}
+
+# What you must produce
+
+{outputs}
+
+- Change no observable behaviour: return values, errors raised, ordering, side effects.
+- Do only this step. Later steps are separate tasks; do not start them.
+- Never edit a test to make it pass. If a test pins an internal detail this step must change,
+  answer "blocked" and name the test.
+- Keep the diff within the budget given with the acceptance commands.
+
+# Acceptance commands
+
+The runner will run these after you finish. You may run them yourself.
+
+{gates}
+
+{findings}
+
+# Rules
+
+{rules}
+
+{result_schema}
+"""
+
+[params.step]
+required = true
+[params.invariant]
+required = true

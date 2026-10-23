@@ -1,0 +1,38 @@
+name = "summarize"
+kind = "produce"
+requires = ["read", "write"]        # capabilities the agent profile must be qualified for (doctor)
+description = "Write a narrative summary of upstream work, from the run record"
+review_type = "report-review"
+needs_run_dir = true        # the only starter type given CODE_SMITH_RUN_DIR. Treat the record as read-only
+
+prompt = """
+You are carrying out one task of a larger workflow, unattended.
+
+# Task {task.id}: {task.title}
+
+Write a summary for {param.audience}. {task.prompt}
+
+# What you have been given
+
+{inputs}
+
+The run record for these tasks is in the run directory named in the environment variable
+CODE_SMITH_RUN_DIR. Start from its STATUS.md and each task's findings.json. Report what was
+decided, what reviewers objected to and how it was settled, what is still open, and what it cost.
+State only what the record supports, and give the file for each claim.
+
+# What you must produce
+
+{outputs}
+
+{findings}
+
+# Rules
+
+{rules}
+
+{result_schema}
+"""
+
+[params.audience]
+default = "the project owner, who was not watching the run"

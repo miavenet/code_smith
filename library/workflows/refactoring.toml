@@ -1,0 +1,225 @@
+# Change structure, not behaviour: pin today's behaviour first (characterisation tests and
+# baselines), prove the safety net bites (mutation checks), then make the owner's list of steps, one
+# bounded task and one commit each, every one held to the same frozen net. A final review judges the
+# whole refactoring together. `runner new refactoring --describe` lists the parameters;
+# examples/templates/ has a filled-in parameter file. The format is in docs/03-workflow-file.md,
+# "Templates".
+
+name = "refactor-{param.name}"  # top-level keys come before the first table, as in any TOML file
+
+[template]
+description = "Change structure, not behaviour: characterise, then N bounded steps, each proven equivalent"
+
+[template.params.name]
+required = true
+description = "Short id used in the workflow name and in paths, e.g. 'split-pricing'"
+
+[template.params.brief]
+required = true
+description = "The refactoring brief, a file relative to the generated workflow: the goal and the public surface"
+
+[template.params.invariant]
+required = true
+description = "What must not change, in words, e.g. 'every public function of pricing returns and raises as before'"
+
+[template.params.area]
+required = true
+description = "Glob of the code the steps may change, e.g. 'src/pricing/**'"
+
+[template.params.tests]
+default = "tests/**"
+description = "Glob of the tests; no step may change any of them"
+
+[template.params.char_tests]
+required = true
+description = "Glob of the characterisation tests, e.g. 'tests/characterisation/split-pricing/**'; protected in every step and in final, also inside the area"
+
+[template.params.test_char]
+required = true
+description = "Runs the characterisation tests; it must pass before the first step and after each"
+
+[template.params.suite]
+required = true
+description = "Runs the whole test suite; it gates every step"
+
+[template.params.steps]
+type = "list"
+required = true
+description = "The steps, in order, one task and one commit each; at least one"
+
+[template.params.invariants]
+default = []
+description = "Commands that must stay green at every stage: build, lint"
+
+[template.params.baselines]
+default = []
+description = "Files characterise writes and the steps are compared with, e.g. ['docs/refactor/api-surface.txt']; protected in every step and in final"
+
+[template.params.equivalence]
+default = []
+description = "Commands that re-measure and compare with a frozen baseline; they gate characterise and every step"
+
+[template.params.mutation]
+default = []
+description = "Commands that change the area and put it back (mutation testers), each a check that the safety net catches the change"
+
+[template.params.also_writes]
+default = []
+description = "Paths the steps may change besides the area, e.g. ['setup.cfg']"
+
+[template.params.step_max_files]
+default = 15
+description = "Diff budget of each step: files changed from its base"
+
+[template.params.step_max_lines]
+default = 300
+description = "Diff budget of each step: lines added plus deleted"
+
+[template.params.final_checks]
+default = []
+description = "Commands, each a read-only check that verifies the final review's candidate, besides test_char and equivalence (which final-equivalence re-runs), e.g. a link check of the report"
+
+[template.params.characterise_reviewers]
+default = []
+description = "Added to the characterisation panel (meticulous-mira and steadfast-stefan blocking, principled-priya advisory)"
+
+[template.params.step_reviewers]
+default = []
+description = "Added to every step's panel (gatekeeper-gao blocking, principled-priya advisory)"
+
+[template.params.final_reviewers]
+default = []
+description = "Added to the final panel (principled-priya and steadfast-stefan blocking): the language bench, picky-paola for a C++ project"
+
+# -- the workflow -------------------------------------------------------------------------------
+
+[template.params.rules_file]
+default = ""
+description = "The project's rules file, shown to every author and reviewer (relative to the generated workflow); for example benches/cpp-standards.md for the C++ bench; a project that handles input it does not control appends benches/security.md to that one file, since a task has one rules file. Empty: none"
+
+[template.params.claude_model]
+default = "claude-opus-5-5"
+description = "The Claude model of every complexity level (edit the generated [model_policy] for a cheaper mechanical or standard model)"
+
+[template.params.codex_model]
+default = "gpt-6-astra"
+description = "The Codex model. Reviewers default to a model family other than the author's (reviewer_family), so Codex and Copilot are in every run's inventory; doctor finds out which of them this box can run and routing falls back from the others"
+
+[template.params.copilot_model]
+default = "claude-sonnet-5"
+description = "The GitHub Copilot CLI model"
+
+[template.params.agent]
+default = "claude"
+description = "The agent profile of every task: claude, codex, copilot, or a profile you add under [agents.NAME]"
+
+[defaults]
+agent = "{param.agent}"
+rules_file = "{param.rules_file}"
+max_attempts = 3
+
+# Every family in the inventory has a model, so the reviewer-family rule can deal reviewers across
+# them and the author can fall back to them (docs/reviewer-families.md). `doctor` says which
+# this box can run.
+[model_policy.mechanical]
+claude = "{param.claude_model}"
+codex = "{param.codex_model}"
+copilot = "{param.copilot_model}"
+[model_policy.standard]
+claude = "{param.claude_model}"
+codex = "{param.codex_model}"
+copilot = "{param.copilot_model}"
+[model_policy.high]
+claude = "{param.claude_model}"
+codex = "{param.codex_model}"
+copilot = "{param.copilot_model}"
+
+
+[[task]]
+id = "characterise"
+type = "characterise"
+title = "Pin today's behaviour of {param.area}"
+note = "The safety net: it must PASS on the unchanged code, and it is frozen once accepted."
+prompt_file = "{param.brief}"
+params = { invariant = "{param.invariant}" }
+outputs = ["{param.char_tests}", "{param.baselines}"]
+gate = ["{param.invariants}", "{param.test_char}", "{param.equivalence}"]
+reviewers = [
+  "meticulous-mira",
+  { perspective = "principled-priya", advisory = true },
+  { perspective = "steadfast-stefan", advisory = false },
+  "{param.characterise_reviewers}",
+]
+
+[[task]]
+for_each = "mutation"
+id = "net-{each.n}"
+type = "check"
+title = "Mutation check {each.n}: the safety net catches changes"
+note = "A surviving mutant sends characterise back; the runner restores the candidate afterwards."
+verifies = "characterise"
+restores = true
+run = ["{each.value}"]
+
+[[task]]
+for_each = "steps"
+chain = true
+id = "step-{each.n}"
+type = "refactor-step"
+title = "Step {each.n}: {each.value}"
+needs = ["characterise"]
+note = "One commit. Over the diff budget, or failing the frozen net, the step is sent back."
+prompt_file = "{param.brief}"
+params = { step = "{each.value}", invariant = "{param.invariant}" }
+complexity = "mechanical"
+outputs = ["{param.area}"]
+writes = ["{param.area}", "{param.also_writes}"]
+protected = ["{param.tests}", "{param.char_tests}", "{param.baselines}"]
+max_changed_files = "{param.step_max_files}"
+max_changed_lines = "{param.step_max_lines}"
+gate = ["{param.invariants}", "{param.suite}", "{param.test_char}", "{param.equivalence}"]
+reviewers = ["gatekeeper-gao", { perspective = "principled-priya", advisory = true }, "{param.step_reviewers}"]
+
+[[task]]
+id = "final"
+type = "summarize"
+title = "Final review of the {param.name} refactoring"
+needs = ["{last.steps}"]
+review_diff_from = "characterise"
+note = "The one place the whole refactoring is judged together; steadfast-stefan blocks here. Its panel sees the runner's cumulative diff from the characterise commit to this candidate (review_diff_from), so every step's change is in front of it."
+prompt = """Report the refactoring as a whole. The final reviewers see the cumulative diff from the commit that accepted characterise to your candidate, made by the runner, beside this report; the report is the narrative that diff is judged against. Base it on git and the record, never on memory:
+1. Each step's commit and what it moved (from the run record or `git log`).
+2. The public surface at the characterise commit and at HEAD (names, signatures, errors raised), read with `git show <commit>:<path>`, and every difference between the two.
+3. Whether the structural goal of the brief is met.
+State only what the record, git and the code show."""
+outputs = ["docs/refactor/{param.name}/final.md"]
+protected = ["{param.tests}", "{param.char_tests}", "{param.baselines}"]
+reviewers = [
+  "principled-priya",
+  { perspective = "steadfast-stefan", advisory = false },
+  "{param.final_reviewers}",
+]
+
+[[task]]
+id = "final-equivalence"
+type = "check"
+title = "The safety net still holds on the final tree"
+note = "Re-runs the characterisation tests and the baseline comparisons on the final review's candidate, the tree the panel judges."
+verifies = "final"
+read_only = true
+run = ["{param.test_char}", "{param.equivalence}"]
+
+[[task]]
+for_each = "final_checks"
+id = "final-{each.n}"
+type = "check"
+title = "Final check {each.n}"
+verifies = "final"
+read_only = true
+run = ["{each.value}"]
+
+[[task]]
+id = "signoff"
+type = "human"
+title = "Owner accepts the {param.name} refactoring"
+needs = ["final"]

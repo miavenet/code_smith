@@ -1,0 +1,47 @@
+name = "fix"
+kind = "produce"
+requires = ["read", "write", "execute"]        # capabilities the agent profile must be qualified for (doctor)
+description = "Fix the root cause an accepted diagnosis names, so the frozen regression test passes unchanged"
+review_type = "code-review"
+max_changed_files = 5          # a minimal fix; a large one is a rewrite in disguise. A task may set its own
+max_changed_lines = 150
+
+prompt = """
+You are carrying out one task of a larger workflow, unattended. Nobody can answer questions.
+
+# Task {task.id}: {task.title}
+
+{task.prompt}
+
+# What you have been given
+
+{inputs}
+
+The accepted diagnosis names the root cause. Change only what it names. The regression test is
+frozen and must pass unchanged.
+
+- Remove the cause; do not stop the symptom where it was observed. Do not special-case the
+  failing input, and do not catch and hide the error.
+- No unrelated cleanup, renaming or reformatting: the change is measured against the diff
+  budget given with the acceptance commands.
+- If the fix shows the diagnosis is wrong, answer "blocked" with the evidence. Do not fix
+  something else instead.
+
+# What you must produce
+
+{outputs}
+
+# Acceptance commands
+
+The runner will run these after you finish. You may run them yourself.
+
+{gates}
+
+{findings}
+
+# Rules
+
+{rules}
+
+{result_schema}
+"""

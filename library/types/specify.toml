@@ -1,0 +1,66 @@
+name = "specify"
+kind = "produce"
+requires = ["read", "write"]        # capabilities the agent profile must be qualified for (doctor)
+description = "Write a short behaviour specification (Given/When/Then scenarios) for one type or function, before any design or code"
+review_type = "design-review"
+
+prompt = """
+You are carrying out one task of a larger workflow, unattended. Nobody can answer questions.
+
+# Task {task.id}: {task.title}
+
+Write the behaviour specification of {param.subject}: what it does, as scenarios a test could
+check, without saying how it is built.
+
+{task.prompt}
+
+# What you have been given
+
+{inputs}
+
+# What you must produce
+
+{outputs}
+
+Write the specification in this shape, so that the tests stage can take one scenario at a time:
+
+    # Spec: <name>
+
+    ## Summary
+    One or two sentences: what this is for, and whether the description was enough to specify it.
+
+    ## Scenarios
+
+    Feature: <name>
+
+      Scenario: <short behaviour phrase>
+        Given <precondition>
+        When  <action>
+        Then  <observable outcome>
+        And   <optional second observable>
+
+    ## Citations
+    - `<path>:<line>` — "<quoted sentence>"
+
+- Every Then line is something a test could observe: a return value, an exception, a state
+  readable through the public interface, an effect on a collaborator. Never a wish ("is fast").
+- Cover the success path and at least one failure mode. Three to six scenarios is the right size;
+  two is too few, ten is a design document.
+- Where a header, interface or document in the inputs states a precondition, postcondition or
+  invariant, quote it verbatim in double quotes in the Given or Then line and cite it. Quoted
+  text is the contract; the rest is your framing.
+- Say nothing about implementation: no data structures, no algorithms, no "use two atomics".
+- Do not invent a contract. If the description names no observable behaviour, write that in the
+  Summary and give no scenarios; a specification padded with guesses is worse than none.
+
+{findings}
+
+# Rules
+
+{rules}
+
+{result_schema}
+"""
+
+[params.subject]
+required = true

@@ -1,0 +1,531 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-S",
+              "-E",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/log-hook.py"
+            ],
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "Setup": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-S",
+              "-E",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/log-hook.py"
+            ],
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "InstructionsLoaded": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-S",
+              "-E",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/log-hook.py"
+            ],
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-S",
+              "-E",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/log-hook.py"
+            ],
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "UserPromptExpansion": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-S",
+              "-E",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/log-hook.py"
+            ],
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-S",
+              "-E",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/log-hook.py"
+            ],
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-S",
+              "-E",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/log-hook.py"
+            ],
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PermissionDenied": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-S",
+              "-E",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/log-hook.py"
+            ],
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-S",
+              "-E",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/log-hook.py"
+            ],
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-S",
+              "-E",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/log-hook.py"
+            ],
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PostToolBatch": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-S",
+              "-E",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/log-hook.py"
+            ],
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-S",
+              "-E",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/log-hook.py"
+            ],
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-S",
+              "-E",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/log-hook.py"
+            ],
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-S",
+              "-E",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/log-hook.py"
+            ],
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-S",
+              "-E",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/log-hook.py"
+            ],
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "StopFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-S",
+              "-E",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/log-hook.py"
+            ],
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-S",
+              "-E",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/log-hook.py"
+            ],
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-S",
+              "-E",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/log-hook.py"
+            ],
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PreModelSwitch": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-S",
+              "-E",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/log-hook.py"
+            ],
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PostModelSwitch": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-S",
+              "-E",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/log-hook.py"
+            ],
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "TeammateIdle": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-S",
+              "-E",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/log-hook.py"
+            ],
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "TaskCreated": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-S",
+              "-E",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/log-hook.py"
+            ],
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-S",
+              "-E",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/log-hook.py"
+            ],
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "Elicitation": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-S",
+              "-E",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/log-hook.py"
+            ],
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "ElicitationResult": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-S",
+              "-E",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/log-hook.py"
+            ],
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "ConfigChange": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-S",
+              "-E",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/log-hook.py"
+            ],
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "CwdChanged": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-S",
+              "-E",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/log-hook.py"
+            ],
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "FileChanged": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-S",
+              "-E",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/log-hook.py"
+            ],
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "DirectoryAdded": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-S",
+              "-E",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/log-hook.py"
+            ],
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "MessageDisplay": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-S",
+              "-E",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/log-hook.py"
+            ],
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-S",
+              "-E",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/log-hook.py"
+            ],
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

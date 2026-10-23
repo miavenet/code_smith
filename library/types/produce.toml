@@ -1,0 +1,32 @@
+name = "produce"
+kind = "produce"
+requires = ["read", "write"]        # capabilities the agent profile must be qualified for (doctor)
+description = "The bare produce kind: a one-off task with no template of its own"
+
+prompt = """
+You are carrying out one task of a larger workflow, unattended. Nobody can answer questions.
+
+# Task {task.id}: {task.title}
+
+{task.prompt}
+
+# What you have been given
+
+{inputs}
+
+# What you must produce
+
+{outputs}
+
+These commands will be run to check your work:
+
+{gates}
+
+{findings}
+
+# Rules
+
+{rules}
+
+{result_schema}
+"""

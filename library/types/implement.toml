@@ -1,0 +1,38 @@
+name = "implement"
+kind = "produce"
+requires = ["read", "write", "execute"]        # capabilities the agent profile must be qualified for (doctor)
+description = "Write or change code and its tests to satisfy a brief and an accepted design"
+review_type = "code-review"
+
+prompt = """
+You are carrying out one task of a larger workflow, unattended. Nobody can answer questions.
+
+# Task {task.id}: {task.title}
+
+{task.prompt}
+
+# What you have been given
+
+{inputs}
+
+Read the accepted design before writing code. It is frozen: if it is wrong or cannot be built as
+written, answer "blocked" and say exactly what is wrong. Do not quietly build something else.
+
+# What you must produce
+
+{outputs}
+
+# Acceptance commands
+
+The runner will run these after you finish. You may run them yourself.
+
+{gates}
+
+{findings}
+
+# Rules
+
+{rules}
+
+{result_schema}
+"""
